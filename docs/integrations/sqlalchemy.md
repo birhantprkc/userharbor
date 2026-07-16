@@ -89,6 +89,123 @@ The built-in table names are:
 In applications that use migrations, include these models in your migration
 metadata instead of calling `create_all()` at runtime.
 
+## Alembic migrations
+
+Applications that use Alembic should let migrations own schema creation. Do not
+call `store.metadata.create_all(engine)` during application startup after
+Alembic has been configured.
+
+Install and initialize Alembic if the application does not already use it:
+
+```bash
+pip install alembic
+alembic init migrations
+```
+
+### Keep the store definition separate
+
+Define the SQLAlchemy store in a small module that only depends on the database
+configuration:
+
+```python
+# app/user_store.py
+from app.database import SessionLocal
+from userharbor_sqlalchemy import SQLAlchemyUserStore
+
+
+user_store = SQLAlchemyUserStore(SessionLocal)
+```
+
+Import this store from both the application setup and Alembic. Avoid importing
+the fully configured `UserHarbor` service from `migrations/env.py`: constructing
+that service may require unrelated secrets, SMTP settings, or framework setup,
+while Alembic only needs the store metadata.
+
+### Configure target metadata
+
+When the application uses its own declarative base and the built-in UserHarbor
+user model, the application and UserHarbor have separate `MetaData` objects.
+Alembic accepts a sequence of metadata collections for autogeneration:
+
+```python
+# migrations/env.py
+# Import application models so they register with Base.metadata.
+from app import models as _models
+from app.database import Base
+from app.user_store import user_store
+
+
+target_metadata = [Base.metadata, user_store.metadata]
+```
+
+Keep the generated `target_metadata=target_metadata` argument in both calls to
+`context.configure()`. Import every application model module before assigning
+`target_metadata`; otherwise Alembic cannot detect those tables.
+
+If UserHarbor owns all SQLAlchemy models in the application, a single metadata
+collection is enough:
+
+```python
+target_metadata = user_store.metadata
+```
+
+Alembic requires table keys to be unique across a sequence of metadata
+collections. See its documentation for
+[autogenerating multiple metadata collections](https://alembic.sqlalchemy.org/en/latest/autogenerate.html#autogenerating-multiple-metadata-collections).
+
+### When using a custom user model
+
+When `user_model` is provided, the adapter reuses that model's metadata for all
+generated UserHarbor tables:
+
+```python
+# app/user_store.py
+from app.database import SessionLocal
+from app.models import AppUser
+from userharbor_sqlalchemy import SQLAlchemyUserStore
+
+
+user_store = SQLAlchemyUserStore(
+    SessionLocal,
+    user_model=AppUser,
+)
+```
+
+In that case, use the shared metadata once instead of passing the same metadata
+twice:
+
+```python
+# migrations/env.py
+from app import models as _models
+from app.user_store import user_store
+
+
+target_metadata = user_store.metadata
+```
+
+See [Custom user model](#custom-user-model) for the fields required by
+`AppUser`.
+
+### Generate and apply the migration
+
+After configuring `target_metadata`, generate the migration:
+
+```bash
+alembic revision --autogenerate -m "create UserHarbor tables"
+```
+
+Review the generated migration before applying it. It should create the
+UserHarbor tables listed above along with any pending application schema
+changes. Then apply it and verify that the database matches the metadata:
+
+```bash
+alembic upgrade head
+alembic check
+```
+
+Future adapter model changes can be handled through the same autogenerate,
+review, and upgrade workflow.
+
 ## Custom user model
 
 By default, the adapter creates and uses its own `userharbor_users` table. If
