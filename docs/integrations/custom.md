@@ -279,23 +279,46 @@ explicit purpose of the package. Prefer accepting a configured `UserHarbor`
 instance or accepting `UserStore` and `EmailSender` implementations from the
 application.
 
-## Testing checklist
+## Testing integrations
 
-Custom integrations should include tests for the contract they implement.
+Every `UserStore` integration should run the shared contract tests provided by
+UserHarbor. Import the complete suite in one test module:
 
-For `UserStore`, cover:
+```python
+# tests/test_user_store_contract.py
 
-* user creation and lookup by username and email
-* email verification token storage and removal
-* session creation, lookup, expiration refresh, removal, and remove-all behavior
-* password hash lookup and update
-* password reset token storage and removal
-* role creation, lookup, listing, and deletion
-* permission creation, lookup, listing, and deletion
-* role-to-permission grant and revoke behavior
-* user-to-role grant and revoke behavior
-* derived user permissions from assigned roles
-* transaction commit and rollback behavior
+from userharbor.testing.user_store_contract import *
+```
+
+Then provide a function-scoped `user_store` fixture in the integration:
+
+```python
+# tests/conftest.py
+
+import pytest
+
+
+@pytest.fixture
+def user_store():
+    store = create_user_store()
+    try:
+        yield store
+    finally:
+        dispose_user_store(store)
+```
+
+The fixture must provide a clean store for every test and release any database
+connections or other resources afterwards. The shared suite verifies users,
+password hashes, verification and reset tokens, sessions, roles, permissions,
+assignments, and transaction behavior through the public `UserStore` interface.
+
+Keep backend-specific tests in the integration repository. Examples include
+database schema and migration tests, provider-specific errors, custom model
+mapping, connection handling, and backend-specific transaction behavior.
+
+See [UserStore contract tests](../Development/contract-tests.md) for instructions
+on developing contracts and testing them against a local UserHarbor checkout
+before a new version is published.
 
 For `EmailSender`, cover:
 

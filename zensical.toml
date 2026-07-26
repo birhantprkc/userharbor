@@ -27,6 +27,7 @@ nav = [
   ] },
   { "Development" = [
     { "Contributing" = "Development/contributing.md" },
+    { "Contract tests" = "Development/contract-tests.md" },
     { "Changelog" = "Development/changelog.md" },
     { "License" = "Development/license.md" },
   ] },

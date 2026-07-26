@@ -82,6 +82,8 @@ class UserHarbor(Generic[UserT]):
         self._email_sender.send_verification(username, email, verification_token)
 
     def verify_email(self, verification_token: str) -> None:
+        expired = False
+        user = None
         with self._store.transaction():
             verification = self._store.get_email_verification(
                 hash_token(verification_token, self._secret_key)
@@ -90,10 +92,13 @@ class UserHarbor(Generic[UserT]):
                 raise InvalidVerificationTokenError("Invalid verification token")
             if utcnow() > as_aware_utc(verification.expires_at):
                 self._store.remove_email_verification(verification.token_hash)
-                raise InvalidVerificationTokenError("Verification token expired")
-            self._store.remove_email_verification(verification.token_hash)
-            self._store.set_user_verified(verification.username)
-            user = self._store.get_user_by_username(verification.username)
+                expired = True
+            else:
+                self._store.remove_email_verification(verification.token_hash)
+                self._store.set_user_verified(verification.username)
+                user = self._store.get_user_by_username(verification.username)
+        if expired:
+            raise InvalidVerificationTokenError("Verification token expired")
         if user:
             self._email_sender.send_email_verified(user.username, user.email)
 
@@ -171,19 +176,27 @@ class UserHarbor(Generic[UserT]):
     def reset_password(self, new_password: str, reset_token: str) -> None:
         reset_token_hash = hash_token(reset_token, self._secret_key)
         new_password_hash = hash_password(new_password)
+        expired = False
+        user = None
         with self._store.transaction():
             password_reset = self._store.get_password_reset(reset_token_hash)
             if not password_reset:
                 raise InvalidPasswordResetTokenError("Invalid password reset token")
             if utcnow() > as_aware_utc(password_reset.expires_at):
                 self._store.remove_password_reset(password_reset.token_hash)
-                raise InvalidPasswordResetTokenError("Password reset token expired")
-            if not is_password_strong(new_password):
-                raise WeakPasswordError("Weak new password")
-            user = self._store.get_user_by_username(password_reset.username)
-            self._store.set_password_hash(password_reset.username, new_password_hash)
-            self._store.remove_all_sessions(password_reset.username)
-            self._store.remove_password_reset(password_reset.token_hash)
+                expired = True
+            else:
+                if not is_password_strong(new_password):
+                    raise WeakPasswordError("Weak new password")
+                user = self._store.get_user_by_username(password_reset.username)
+                self._store.set_password_hash(
+                    password_reset.username,
+                    new_password_hash,
+                )
+                self._store.remove_all_sessions(password_reset.username)
+                self._store.remove_password_reset(password_reset.token_hash)
+        if expired:
+            raise InvalidPasswordResetTokenError("Password reset token expired")
         if user:
             self._email_sender.send_password_changed(user.username, user.email)
 

@@ -38,7 +38,7 @@ def test_get_current_user_rejects_session_for_missing_user(
 ) -> None:
     registered_user, session_token = logged_in_user
     session_token_hash = store.users[registered_user.username].session_token_hashes[-1]
-    store.delete_user(registered_user.username)
+    del store.users[registered_user.username]
 
     with pytest.raises(InvalidSessionTokenError, match="Invalid session token"):
         userharbor.get_current_user(session_token)

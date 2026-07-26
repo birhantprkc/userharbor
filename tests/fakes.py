@@ -1,4 +1,5 @@
-from contextlib import nullcontext
+from contextlib import contextmanager
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -72,11 +73,46 @@ class InMemoryUserStore(UserStore[TestUser]):
         self.roles: set[str] = set()
         self.permissions: set[str] = set()
         self.role_permissions: dict[str, set[str]] = {}
+        self._transaction_depth = 0
 
+    @contextmanager
     def transaction(self):
-        return nullcontext()
+        snapshot = None
+        if self._transaction_depth == 0:
+            snapshot = deepcopy(
+                (
+                    self.users,
+                    self.email_verifications,
+                    self.sessions,
+                    self.password_resets,
+                    self.roles,
+                    self.permissions,
+                    self.role_permissions,
+                )
+            )
+        self._transaction_depth += 1
+        try:
+            yield
+        except Exception:
+            if snapshot is not None:
+                (
+                    self.users,
+                    self.email_verifications,
+                    self.sessions,
+                    self.password_resets,
+                    self.roles,
+                    self.permissions,
+                    self.role_permissions,
+                ) = snapshot
+            raise
+        finally:
+            self._transaction_depth -= 1
 
     def create_user(self, user: CreateUserRequest) -> None:
+        if user.username in self.users or any(
+            stored_user.email == user.email for stored_user in self.users.values()
+        ):
+            raise ValueError("Username or email already exists")
         self.users[user.username] = StoredUser(
             username=user.username,
             email=user.email,
@@ -103,10 +139,12 @@ class InMemoryUserStore(UserStore[TestUser]):
         self.email_verifications[verification.token_hash] = verification
 
     def remove_email_verification(self, token_hash: str) -> None:
-        del self.email_verifications[token_hash]
+        self.email_verifications.pop(token_hash, None)
 
     def set_user_verified(self, username: str) -> None:
-        self.users[username].verified = True
+        user = self.users.get(username)
+        if user is not None:
+            user.verified = True
 
     def get_password_hash(self, username: str) -> str:
         return self.users[username].password_hash
@@ -144,20 +182,27 @@ class InMemoryUserStore(UserStore[TestUser]):
         return None
 
     def remove_session(self, token_hash: str) -> None:
-        session = self.sessions.pop(token_hash)
+        session = self.sessions.pop(token_hash, None)
+        if session is None:
+            return
         session_token_hashes = self.users[session.username].session_token_hashes
         assert session_token_hashes is not None
         session_token_hashes.remove(token_hash)
 
     def remove_all_sessions(self, username: str) -> None:
-        session_token_hashes = self.users[username].session_token_hashes
+        user = self.users.get(username)
+        if user is None:
+            return
+        session_token_hashes = user.session_token_hashes
         assert session_token_hashes is not None
         for session_token_hash in session_token_hashes:
             del self.sessions[session_token_hash]
         session_token_hashes.clear()
 
     def refresh_session(self, token_hash: str, new_expires_at: datetime) -> None:
-        self.sessions[token_hash].expires_at = new_expires_at
+        session = self.sessions.get(token_hash)
+        if session is not None:
+            session.expires_at = new_expires_at
 
     def get_password_reset(self, token_hash: str) -> UserToken | None:
         return self.password_resets.get(token_hash)
@@ -170,18 +215,36 @@ class InMemoryUserStore(UserStore[TestUser]):
         self.password_resets[reset.token_hash] = reset
 
     def remove_password_reset(self, token_hash: str) -> None:
-        reset = self.password_resets.pop(token_hash)
-        self.users[reset.username].password_reset_token_hash = None
+        reset = self.password_resets.pop(token_hash, None)
+        if reset is not None:
+            self.users[reset.username].password_reset_token_hash = None
 
     def delete_user(self, username: str) -> None:
-        del self.users[username]
+        user = self.users.pop(username, None)
+        if user is None:
+            return
+        self.email_verifications = {
+            token_hash: token
+            for token_hash, token in self.email_verifications.items()
+            if token.username != username
+        }
+        self.sessions = {
+            token_hash: token
+            for token_hash, token in self.sessions.items()
+            if token.username != username
+        }
+        self.password_resets = {
+            token_hash: token
+            for token_hash, token in self.password_resets.items()
+            if token.username != username
+        }
 
     def create_role(self, role: str) -> None:
         self.roles.add(role)
         self.role_permissions[role] = set()
 
     def delete_role(self, role: str) -> None:
-        self.roles.remove(role)
+        self.roles.discard(role)
         self.role_permissions.pop(role, None)
         for user in self.users.values():
             assert user.roles is not None
@@ -197,7 +260,7 @@ class InMemoryUserStore(UserStore[TestUser]):
         self.permissions.add(permission)
 
     def delete_permission(self, permission: str) -> None:
-        self.permissions.remove(permission)
+        self.permissions.discard(permission)
         for permissions in self.role_permissions.values():
             permissions.discard(permission)
 
@@ -214,7 +277,7 @@ class InMemoryUserStore(UserStore[TestUser]):
         self.role_permissions[role].discard(permission)
 
     def get_role_permissions(self, role: str) -> set[str]:
-        return self.role_permissions[role].copy()
+        return self.role_permissions.get(role, set()).copy()
 
     def grant_role_to_user(self, username: str, role: str) -> None:
         roles = self.users[username].roles
@@ -227,13 +290,19 @@ class InMemoryUserStore(UserStore[TestUser]):
         roles.discard(role)
 
     def get_user_roles(self, username: str) -> set[str]:
-        roles = self.users[username].roles
+        user = self.users.get(username)
+        if user is None:
+            return set()
+        roles = user.roles
         assert roles is not None
         return roles.copy()
 
     def get_user_permissions(self, username: str) -> set[str]:
         permissions = set()
-        roles = self.users[username].roles
+        user = self.users.get(username)
+        if user is None:
+            return permissions
+        roles = user.roles
         assert roles is not None
         for role in roles:
             permissions.update(self.role_permissions[role])

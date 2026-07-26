@@ -15,6 +15,11 @@ def store() -> InMemoryUserStore:
 
 
 @pytest.fixture
+def user_store(store: InMemoryUserStore) -> InMemoryUserStore:
+    return store
+
+
+@pytest.fixture
 def email_sender() -> RecordingEmailSender:
     return RecordingEmailSender()
 
