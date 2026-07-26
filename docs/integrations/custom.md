@@ -289,6 +289,34 @@ See [UserStore contract tests](../Development/contract-tests.md) for instruction
 on developing contracts and testing them against a local UserHarbor checkout
 before a new version is published.
 
+### Start from the template
+
+[`userharbor-inmemory`](https://github.com/userharbor/userharbor-inmemory) is a minimal, contract-tested `UserStore` implementation and an official GitHub template for building custom storage integrations. It contains a complete in-memory store, package metadata, test and publishing workflows, and the shared contract setup described above.
+
+Select **Use this template** in the repository or open [Create a new repository from the template](https://github.com/new?template_name=userharbor-inmemory&template_owner=userharbor). The generated project starts with a passing contract suite, so the in-memory implementation can be replaced incrementally while the tests continue to verify the required behavior.
+
+After creating a repository:
+
+1. Rename the distribution, import package, store class, and project metadata.
+2. Replace the in-memory dictionaries and snapshot transaction with the target backend.
+3. Update the `user_store` fixture to create a clean backend and dispose of its resources after every test.
+4. Keep the shared contract import and add separate tests for backend-specific schema, errors, mapping, connection, and transaction behavior.
+
+The package can also be installed directly for application tests and examples:
+
+```bash
+pip install userharbor-inmemory
+```
+
+```python
+from userharbor_inmemory import InMemoryUserStore
+
+
+store = InMemoryUserStore()
+```
+
+Each store instance starts empty and retains data only for its own lifetime. It does not provide persistent storage, cross-process sharing, durable transactions, or concurrency guarantees, so it should not be used as a production database.
+
 ## EmailSender integrations
 
 Implement `EmailSender` when your adapter is responsible for message delivery.
