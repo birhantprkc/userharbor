@@ -43,6 +43,10 @@ The adapter persists:
 * user-to-role assignments
 * role-to-permission assignments
 
+Each user has at most one active email verification token and one active
+password reset token. Storing a new token of either kind removes that user's
+previous token. Users can have multiple active sessions.
+
 It also updates session expiration when UserHarbor refreshes an active session.
 
 It does not send emails, expose HTTP endpoints, or implement

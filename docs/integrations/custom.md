@@ -62,7 +62,7 @@ for readability:
 Adapter packages should still pass one store object to `UserHarbor`.
 
 ```python
-from contextlib import AbstractContextManager, nullcontext
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -78,7 +78,7 @@ class MyUser:
 
 class MyUserStore(UserStore[MyUser]):
     def transaction(self) -> AbstractContextManager[None]:
-        return nullcontext()
+        ...
 
     def create_user(self, user: CreateUserRequest) -> None:
         ...
@@ -208,19 +208,86 @@ be any object that provides `username`, `email`, and `verified`. Parameterize
 `UserStore` with that concrete type so `UserHarbor.get_current_user()` preserves
 it in type checkers.
 
-## Transactions
+### Contract semantics
+
+A conforming `UserStore` must preserve the behavior expected by UserHarbor, not
+only provide methods with matching signatures. In particular:
+
+* usernames and email addresses are unique
+* creating a user and their initial email verification token is atomic
+* a newly created user is not verified
+* setting a new email verification token removes the user's previous
+  verification token
+* setting a new password reset token removes the user's previous reset token
+* deleting a user removes their verification tokens, password reset tokens, and
+  sessions
+* deleting a missing user, token, session, role, or permission is a no-op
+* refreshing a missing session and marking a missing user as verified are no-ops
+* reading a missing user or token returns `None`
+* reading roles or effective permissions for a missing user returns an empty set
+* reading or updating a password hash for a missing user raises `KeyError`
+* granting or revoking the same relationship more than once is idempotent
+* deleting roles and permissions removes their relationship assignments
+
+The shared contract tests are the executable specification for these rules.
+Backend-specific exception types and persistence details remain the adapter's
+responsibility.
+
+### Transactions
 
 `transaction()` should return a context manager. UserHarbor uses it around
 operations that update multiple related records, such as email verification,
 password reset, password change, account deletion, and role or permission
 assignment.
 
-For stores that support transactions, commit when the block finishes
-successfully and roll back when an exception is raised.
+A conforming store must commit when the block finishes successfully and roll
+back every change from the block when an exception is raised. Nested
+`transaction()` calls must participate in the outer transaction.
 
-For simple in-memory or non-transactional adapters, `nullcontext()` can be enough
-while prototyping, but production stores should provide real consistency when
-the backend supports it.
+A `nullcontext()` can be useful in an early prototype or a deliberately simple
+test double, but it does not satisfy the complete `UserStore` contract and will
+not pass the shared transaction tests.
+
+### Testing
+
+Every `UserStore` integration should run the shared contract tests provided by
+UserHarbor. Import the complete suite in one test module:
+
+```python
+# tests/test_user_store_contract.py
+
+from userharbor.testing.user_store_contract import *  # noqa: F403
+```
+
+Then provide a function-scoped `user_store` fixture in the integration:
+
+```python
+# tests/conftest.py
+
+import pytest
+
+
+@pytest.fixture
+def user_store():
+    store = create_user_store()
+    try:
+        yield store
+    finally:
+        dispose_user_store(store)
+```
+
+The fixture must provide a clean store for every test and release any database
+connections or other resources afterwards. The shared suite verifies users,
+password hashes, verification and reset tokens, sessions, roles, permissions,
+assignments, and transaction behavior through the public `UserStore` interface.
+
+Keep backend-specific tests in the integration repository. Examples include
+database schema and migration tests, provider-specific errors, custom model
+mapping, connection handling, and backend-specific transaction behavior.
+
+See [UserStore contract tests](../Development/contract-tests.md) for instructions
+on developing contracts and testing them against a local UserHarbor checkout
+before a new version is published.
 
 ## EmailSender integrations
 
@@ -261,6 +328,19 @@ An `EmailSender` should only send messages. It should not decide whether a token
 is valid, hash tokens, verify users, or reset passwords. Those responsibilities
 belong to UserHarbor core.
 
+### Testing
+
+For `EmailSender`, cover:
+
+* verification messages
+* password reset messages
+* email-verified messages
+* password-changed messages
+* account-deleted messages
+* subject and sender configuration
+* template rendering, if templates are supported
+* provider authentication or API calls using fakes
+
 ## Framework integrations
 
 Framework integrations should compose UserHarbor with framework-specific tools
@@ -278,58 +358,6 @@ It should avoid hard-coding one database or email provider unless that is the
 explicit purpose of the package. Prefer accepting a configured `UserHarbor`
 instance or accepting `UserStore` and `EmailSender` implementations from the
 application.
-
-## Testing integrations
-
-Every `UserStore` integration should run the shared contract tests provided by
-UserHarbor. Import the complete suite in one test module:
-
-```python
-# tests/test_user_store_contract.py
-
-from userharbor.testing.user_store_contract import *
-```
-
-Then provide a function-scoped `user_store` fixture in the integration:
-
-```python
-# tests/conftest.py
-
-import pytest
-
-
-@pytest.fixture
-def user_store():
-    store = create_user_store()
-    try:
-        yield store
-    finally:
-        dispose_user_store(store)
-```
-
-The fixture must provide a clean store for every test and release any database
-connections or other resources afterwards. The shared suite verifies users,
-password hashes, verification and reset tokens, sessions, roles, permissions,
-assignments, and transaction behavior through the public `UserStore` interface.
-
-Keep backend-specific tests in the integration repository. Examples include
-database schema and migration tests, provider-specific errors, custom model
-mapping, connection handling, and backend-specific transaction behavior.
-
-See [UserStore contract tests](../Development/contract-tests.md) for instructions
-on developing contracts and testing them against a local UserHarbor checkout
-before a new version is published.
-
-For `EmailSender`, cover:
-
-* verification messages
-* password reset messages
-* email-verified messages
-* password-changed messages
-* account-deleted messages
-* subject and sender configuration
-* template rendering, if templates are supported
-* provider authentication or API calls using fakes
 
 ## Public API
 

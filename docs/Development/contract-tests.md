@@ -13,7 +13,7 @@ suite and provide a function-scoped `user_store` fixture:
 ```python
 # tests/test_user_store_contract.py
 
-from userharbor.testing.user_store_contract import *
+from userharbor.testing.user_store_contract import *  # noqa: F403
 ```
 
 ```python
@@ -35,6 +35,44 @@ The fixture must return a clean store for every test and clean up any databases,
 connections, containers, or other resources it creates. Contract tests only use
 the public `UserStore` interface. Backend-specific behavior should remain in the
 adapter's own tests.
+
+The adapter must include `pytest` in its development dependencies. With uv:
+
+```bash
+uv add --dev pytest
+```
+
+## Contract organization
+
+The contract is organized by `UserStore` responsibility:
+
+```text
+userharbor/testing/user_store_contract/
+    __init__.py
+    _support.py
+    users.py
+    email_verifications.py
+    password_resets.py
+    sessions.py
+    roles.py
+    permissions.py
+    transactions.py
+```
+
+Add a new test function to the module that owns the behavior being tested. Every
+function named `test_*` is exported by that module and re-exported by the package,
+so adapter imports remain unchanged as the suite grows.
+
+Use `_support.py` only for shared test data, factories, and assertions. Contract
+tests should continue to interact with stores exclusively through the public
+`UserStore` interface.
+
+Run a focused group from an adapter repository with `-k`, for example:
+
+```bash
+uv run --with-editable ../userharbor pytest \
+  tests/test_user_store_contract.py -k session
+```
 
 ## Developing a contract across local repositories
 
@@ -80,3 +118,19 @@ uv run pytest
 
 Before submitting changes, both the main suite and every affected adapter suite
 should pass.
+
+## Versioning the contract
+
+Contract tests are distributed with `userharbor`. After a UserHarbor release
+adds or changes the suite, adapter packages must require a UserHarbor version
+that contains the compatible contract. Before that release exists, use the
+local `--with-editable` workflow described above.
+
+Changing an existing contract test changes the behavior expected from every
+`UserStore` implementation. Treat such changes like public API compatibility
+changes: document the new requirement, update all official adapters, and test
+the minimum and latest supported UserHarbor versions where they differ.
+
+When an adapter starts importing the contract for the first time, publish the
+UserHarbor version containing the suite before publishing the adapter version
+that depends on it.
