@@ -6,11 +6,11 @@ def is_email_valid(email: str) -> bool:
     return re.match(email_regex, email) is not None
 
 
-def is_username_valid(username: str) -> bool:
+def default_username_validator(username: str) -> bool:
     return len(username) >= 3 and username.isalnum()
 
 
-def is_password_strong(password: str) -> bool:
+def default_password_validator(password: str) -> bool:
     if len(password) < 8:
         return False
     if not any(char.isdigit() for char in password):

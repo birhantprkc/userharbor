@@ -39,10 +39,10 @@ def test_grant_role_rejects_unknown_user(userharbor) -> None:
         userharbor.grant_role("missing123", "admin")
 
 
-def test_grant_role_rejects_invalid_username(userharbor) -> None:
+def test_grant_role_treats_invalid_username_as_unknown(userharbor) -> None:
     userharbor.roles.create("admin")
 
-    with pytest.raises(InvalidUsernameError, match="Invalid username"):
+    with pytest.raises(InvalidUsernameError, match="Unknown username"):
         userharbor.grant_role("x", "admin")
 
 

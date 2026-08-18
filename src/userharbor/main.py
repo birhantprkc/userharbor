@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import timedelta
 from typing import Generic
 
@@ -26,11 +27,11 @@ from .security import (
 )
 from .utils import as_aware_utc, utcnow
 from .validations import (
+    default_password_validator,
+    default_username_validator,
     is_email_valid,
-    is_password_strong,
     is_permission_valid,
     is_role_valid,
-    is_username_valid,
 )
 
 
@@ -44,6 +45,8 @@ class UserHarbor(Generic[UserT]):
         password_reset_token_ttl: timedelta = timedelta(hours=1),
         session_token_ttl: timedelta = timedelta(days=30),
         session_refresh_threshold: timedelta | None = timedelta(days=7),
+        username_validator: Callable[[str], bool] = default_username_validator,
+        password_validator: Callable[[str], bool] = default_password_validator,
     ) -> None:
         self._secret_key = secret_key
         self._store = store
@@ -52,16 +55,16 @@ class UserHarbor(Generic[UserT]):
         self._password_reset_token_ttl = password_reset_token_ttl
         self._session_token_ttl = session_token_ttl
         self._session_refresh_threshold = session_refresh_threshold
+        self._username_validator = username_validator
+        self._password_validator = password_validator
         self.roles = RoleManager(store)
         self.permissions = PermissionManager(store)
 
     def register(self, username: str, email: str, password: str) -> None:
-        if not is_username_valid(username):
-            raise InvalidUsernameError("Invalid username")
+        self._validate_username(username)
         if not is_email_valid(email):
             raise InvalidEmailError("Invalid email")
-        if not is_password_strong(password):
-            raise WeakPasswordError("Weak password")
+        self._validate_password(password)
         if self._store.get_user_by_username(username):
             raise InvalidUsernameError("Username already exists")
         if self._store.get_user_by_email(email):
@@ -186,8 +189,7 @@ class UserHarbor(Generic[UserT]):
                 self._store.remove_password_reset(password_reset.token_hash)
                 expired = True
             else:
-                if not is_password_strong(new_password):
-                    raise WeakPasswordError("Weak new password")
+                self._validate_password(new_password)
                 user = self._store.get_user_by_username(password_reset.username)
                 self._store.set_password_hash(
                     password_reset.username,
@@ -210,8 +212,7 @@ class UserHarbor(Generic[UserT]):
                 old_password, self._store.get_password_hash(session.username)
             ):
                 raise InvalidCredentialsError("Invalid old password")
-            if not is_password_strong(new_password):
-                raise WeakPasswordError("Weak new password")
+            self._validate_password(new_password)
             user = self._store.get_user_by_username(session.username)
             self._store.set_password_hash(session.username, new_password_hash)
             self._store.remove_all_sessions(session.username)
@@ -304,9 +305,15 @@ class UserHarbor(Generic[UserT]):
             return user
         raise InvalidSessionTokenError("Invalid session token")
 
-    def _require_user(self, username: str) -> None:
-        if not is_username_valid(username):
+    def _validate_username(self, username: str) -> None:
+        if not self._username_validator(username):
             raise InvalidUsernameError("Invalid username")
+
+    def _validate_password(self, password: str) -> None:
+        if not self._password_validator(password):
+            raise WeakPasswordError("Weak password")
+
+    def _require_user(self, username: str) -> None:
         if not self._store.get_user_by_username(username):
             raise InvalidUsernameError("Unknown username")
 

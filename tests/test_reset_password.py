@@ -130,7 +130,7 @@ def test_reset_password_rejects_weak_new_password(
     password_hash_before_reset = store.users[registered_user.username].password_hash
     reset_token_hash = store.users[registered_user.username].password_reset_token_hash
 
-    with pytest.raises(WeakPasswordError, match="Weak new password"):
+    with pytest.raises(WeakPasswordError, match="Weak password"):
         userharbor.reset_password("weak", reset_token)
 
     assert (

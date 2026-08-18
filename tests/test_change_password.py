@@ -133,7 +133,7 @@ def test_change_password_rejects_weak_new_password(
     assert session_token_hashes is not None
     sessions_before_change = session_token_hashes.copy()
 
-    with pytest.raises(WeakPasswordError, match="Weak new password"):
+    with pytest.raises(WeakPasswordError, match="Weak password"):
         userharbor.change_password(
             VALID_PASSWORD,
             "weak",
