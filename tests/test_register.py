@@ -52,7 +52,8 @@ def test_register_creates_user_and_sends_verification(
     "username",
     [
         "ab",
-        "janek_123",
+        "janek-123",
+        "a" * 33,
     ],
 )
 def test_register_rejects_invalid_username(
@@ -63,6 +64,15 @@ def test_register_rejects_invalid_username(
 
     assert store.users == {}
     assert email_sender.sent_verifications == []
+
+
+@pytest.mark.parametrize("username", ["a_b", "a" * 32])
+def test_register_accepts_valid_username_at_default_validator_boundaries(
+    userharbor, store, username
+) -> None:
+    userharbor.register(username, VALID_EMAIL, VALID_PASSWORD)
+
+    assert username in store.users
 
 
 def test_register_rejects_invalid_email(userharbor, store, email_sender) -> None:

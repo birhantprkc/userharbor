@@ -17,20 +17,24 @@ Validators receive a string and return `True` when the value is valid or
 
 The default username validator requires a username to:
 
-* contain at least 3 characters
-* contain only letters and numbers
+* contain between 3 and 32 characters
+* contain only letters, numbers, and underscores
+
+The 32-character maximum keeps usernames readable while leaving enough room for
+most human-readable and generated identifiers. Applications that need longer
+usernames can provide a custom validator.
 
 It accepts usernames such as:
 
 ```text
 jane
 jane123
+jane_doe
 ```
 
-Characters such as underscores, hyphens, and spaces are rejected by default.
-Username validation runs when a user registers. Operations involving an
-existing user check whether that user exists without validating the username
-again.
+Characters such as hyphens and spaces are rejected by default. Username
+validation runs when a user registers. Operations involving an existing user
+check whether that user exists without validating the username again.
 
 An invalid username raises `InvalidUsernameError`.
 

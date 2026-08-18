@@ -7,7 +7,9 @@ def is_email_valid(email: str) -> bool:
 
 
 def default_username_validator(username: str) -> bool:
-    return len(username) >= 3 and username.isalnum()
+    return 3 <= len(username) <= 32 and all(
+        character.isalnum() or character == "_" for character in username
+    )
 
 
 def default_password_validator(password: str) -> bool:
