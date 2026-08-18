@@ -228,6 +228,7 @@ The full documentation is available at
 Useful pages:
 
 * [Architecture](https://userharbor.github.io/userharbor/architecture/)
+* [Validation](https://userharbor.github.io/userharbor/validation/)
 * [Roles and permissions](https://userharbor.github.io/userharbor/roles-and-permissions/)
 * [Design principles](https://userharbor.github.io/userharbor/design-principles/)
 * [Integrations](https://userharbor.github.io/userharbor/integrations/)
