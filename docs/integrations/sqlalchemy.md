@@ -230,6 +230,7 @@ class AppUser(AppBase):
     __tablename__ = "app_users"
 
     username: Mapped[str] = mapped_column(String(255), primary_key=True)
+    username_key: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     email: Mapped[str] = mapped_column(String(320), unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String(512))
     verified: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -249,9 +250,14 @@ store.metadata.create_all(engine)
 Custom user models must provide:
 
 * `username`
+* `username_key`
 * `email`
 * `password_hash`
 * `verified`
+
+`SQLAlchemyUserStore` writes `username.casefold()` to `username_key`. The
+column must be unique so username lookup and uniqueness remain case-insensitive
+while `username` preserves its original casing.
 
 The token and role assignment tables are still created by the adapter. Their
 user foreign keys point to the table configured through `user_model`. When a
