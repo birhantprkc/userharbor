@@ -109,7 +109,10 @@ class InMemoryUserStore(UserStore[TestUser]):
             self._transaction_depth -= 1
 
     def create_user(self, user: CreateUserRequest) -> None:
-        if user.username in self.users or any(
+        if any(
+            username.casefold() == user.username.casefold()
+            for username in self.users
+        ) or any(
             stored_user.email == user.email for stored_user in self.users.values()
         ):
             raise ValueError("Username or email already exists")
@@ -162,14 +165,15 @@ class InMemoryUserStore(UserStore[TestUser]):
         return self.sessions.get(token_hash)
 
     def get_user_by_username(self, username: str) -> TestUser | None:
-        stored_user = self.users.get(username)
-        if stored_user is None:
-            return None
-        return TestUser(
-            username=stored_user.username,
-            email=stored_user.email,
-            verified=stored_user.verified,
-        )
+        username_key = username.casefold()
+        for stored_user in self.users.values():
+            if stored_user.username.casefold() == username_key:
+                return TestUser(
+                    username=stored_user.username,
+                    email=stored_user.email,
+                    verified=stored_user.verified,
+                )
+        return None
 
     def get_user_by_email(self, email: str) -> TestUser | None:
         for stored_user in self.users.values():

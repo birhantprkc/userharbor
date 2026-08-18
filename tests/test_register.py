@@ -22,7 +22,7 @@ def test_register_creates_user_and_sends_verification(
 ) -> None:
     before_register = utcnow()
 
-    userharbor.register(VALID_USERNAME, VALID_EMAIL, VALID_PASSWORD)
+    userharbor.register(VALID_USERNAME, VALID_EMAIL.upper(), VALID_PASSWORD)
 
     after_register = utcnow()
 
@@ -83,14 +83,14 @@ def test_register_rejects_invalid_email(userharbor, store, email_sender) -> None
     assert email_sender.sent_verifications == []
 
 
-def test_register_rejects_existing_username(
+def test_register_rejects_case_insensitive_existing_username(
     userharbor, store, email_sender, register_user
 ) -> None:
     registered_user = register_user()
 
     with pytest.raises(InvalidUsernameError, match="Username already exists"):
         userharbor.register(
-            registered_user.username,
+            registered_user.username.upper(),
             "other@example.com",
             VALID_PASSWORD,
         )
@@ -99,12 +99,12 @@ def test_register_rejects_existing_username(
     assert len(email_sender.sent_verifications) == 1
 
 
-def test_register_ignores_existing_email(
+def test_register_ignores_existing_email_with_different_case(
     userharbor, store, email_sender, register_user
 ) -> None:
     registered_user = register_user()
 
-    userharbor.register("otheruser", registered_user.email, VALID_PASSWORD)
+    userharbor.register("otheruser", registered_user.email.upper(), VALID_PASSWORD)
 
     assert list(store.users) == [registered_user.username]
     assert len(email_sender.sent_verifications) == 1

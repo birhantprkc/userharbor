@@ -213,7 +213,12 @@ it in type checkers.
 A conforming `UserStore` must preserve the behavior expected by UserHarbor, not
 only provide methods with matching signatures. In particular:
 
-* usernames and email addresses are unique
+* usernames are unique using Unicode `casefold()` comparison while preserving
+  the original casing
+* `get_user_by_username()` compares usernames using Unicode `casefold()` and
+  returns the stored user with their original username casing
+* email addresses are unique; UserHarbor normalizes them to lowercase before
+  passing them to the store
 * creating a user and their initial email verification token is atomic
 * a newly created user is not verified
 * setting a new email verification token removes the user's previous

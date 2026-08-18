@@ -67,6 +67,12 @@ Use `_support.py` only for shared test data, factories, and assertions. Contract
 tests should continue to interact with stores exclusively through the public
 `UserStore` interface.
 
+The user contract includes identifier semantics required by the core. Username
+lookups and uniqueness use Unicode `casefold()` comparison, while the username
+returned by the store preserves its original casing. Adapter-specific tests
+should cover the database constraint, collation, functional index, or normalized
+key used to provide that behavior.
+
 Run a focused group from an adapter repository with `-k`, for example:
 
 ```bash

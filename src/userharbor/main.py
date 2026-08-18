@@ -18,6 +18,7 @@ from .exceptions import (
     WeakPasswordError,
 )
 from .interfaces import CreateUserRequest, EmailSender, UserStore, UserT, UserToken
+from .normalizations import normalize_email
 from .rbac import PermissionManager, RoleManager
 from .security import (
     generate_token,
@@ -61,6 +62,7 @@ class UserHarbor(Generic[UserT]):
         self.permissions = PermissionManager(store)
 
     def register(self, username: str, email: str, password: str) -> None:
+        email = normalize_email(email)
         self._validate_username(username)
         if not is_email_valid(email):
             raise InvalidEmailError("Invalid email")
@@ -106,6 +108,7 @@ class UserHarbor(Generic[UserT]):
             self._email_sender.send_email_verified(user.username, user.email)
 
     def resend_verification(self, email: str) -> None:
+        email = normalize_email(email)
         user = self._store.get_user_by_email(email)
         if not user or user.verified:
             return
@@ -117,14 +120,16 @@ class UserHarbor(Generic[UserT]):
                 expires_at=utcnow() + self._email_verification_token_ttl,
             )
         )
-        self._email_sender.send_verification(user.username, email, verification_token)
+        self._email_sender.send_verification(
+            user.username, user.email, verification_token
+        )
 
     def login(self, username: str, password: str) -> str:
         user = self._store.get_user_by_username(username)
         if not user:
             raise InvalidCredentialsError("Invalid username or password")
 
-        password_hash = self._store.get_password_hash(username)
+        password_hash = self._store.get_password_hash(user.username)
         if not verify_password(password, password_hash):
             raise InvalidCredentialsError("Invalid username or password")
 
@@ -134,7 +139,7 @@ class UserHarbor(Generic[UserT]):
         session_token = generate_token()
         self._store.add_session(
             UserToken(
-                username=username,
+                username=user.username,
                 token_hash=hash_token(session_token, self._secret_key),
                 expires_at=utcnow() + self._session_token_ttl,
             )
@@ -163,6 +168,7 @@ class UserHarbor(Generic[UserT]):
         self._store.remove_all_sessions(session.username)
 
     def send_password_reset(self, email: str) -> None:
+        email = normalize_email(email)
         user = self._store.get_user_by_email(email)
         if not user:
             return
@@ -174,7 +180,7 @@ class UserHarbor(Generic[UserT]):
                 expires_at=utcnow() + self._password_reset_token_ttl,
             )
         )
-        self._email_sender.send_password_reset(user.username, email, reset_token)
+        self._email_sender.send_password_reset(user.username, user.email, reset_token)
 
     def reset_password(self, new_password: str, reset_token: str) -> None:
         reset_token_hash = hash_token(reset_token, self._secret_key)
@@ -233,22 +239,22 @@ class UserHarbor(Generic[UserT]):
             self._email_sender.send_account_deleted(user.username, user.email)
 
     def grant_role(self, username: str, role: str) -> None:
-        self._require_user(username)
+        user = self._require_user(username)
         self._require_role(role)
-        self._store.grant_role_to_user(username, role)
+        self._store.grant_role_to_user(user.username, role)
 
     def revoke_role(self, username: str, role: str) -> None:
-        self._require_user(username)
+        user = self._require_user(username)
         self._require_role(role)
-        self._store.revoke_role_from_user(username, role)
+        self._store.revoke_role_from_user(user.username, role)
 
     def get_roles(self, username: str) -> set[str]:
-        self._require_user(username)
-        return self._store.get_user_roles(username)
+        user = self._require_user(username)
+        return self._store.get_user_roles(user.username)
 
     def get_permissions(self, username: str) -> set[str]:
-        self._require_user(username)
-        return self._store.get_user_permissions(username)
+        user = self._require_user(username)
+        return self._store.get_user_permissions(user.username)
 
     def has_role(self, session_token: str, role: str) -> bool:
         self._require_role(role)
@@ -313,9 +319,10 @@ class UserHarbor(Generic[UserT]):
         if not self._password_validator(password):
             raise WeakPasswordError("Weak password")
 
-    def _require_user(self, username: str) -> None:
-        if not self._store.get_user_by_username(username):
-            raise InvalidUsernameError("Unknown username")
+    def _require_user(self, username: str) -> UserT:
+        if user := self._store.get_user_by_username(username):
+            return user
+        raise InvalidUsernameError("Unknown username")
 
     def _require_role(self, role: str) -> None:
         self._validate_role(role)

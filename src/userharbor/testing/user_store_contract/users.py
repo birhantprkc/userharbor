@@ -45,6 +45,29 @@ def test_create_user_rolls_back_when_database_rejects_row(
     )
 
 
+def test_create_user_rejects_case_insensitive_duplicate_username(
+    user_store: UserStore,
+) -> None:
+    create_user(user_store, username="Straße")
+    duplicate_username = create_user_request(
+        username="STRASSE",
+        email="other@example.com",
+        password_hash="other-password-hash",
+        verification_token_hash="other-verification-token-hash",
+    )
+
+    with pytest.raises(Exception):
+        user_store.create_user(duplicate_username)
+
+    user = user_store.get_user_by_username("strasse")
+    assert user is not None
+    assert user.username == "Straße"
+    assert user_store.get_user_by_email("other@example.com") is None
+    assert (
+        user_store.get_email_verification("other-verification-token-hash") is None
+    )
+
+
 def test_delete_user_removes_user_and_related_tokens(user_store: UserStore) -> None:
     create_user(user_store)
     user_store.add_session(UserToken("alice", "session-token-hash", EXPIRES_AT))
@@ -109,6 +132,26 @@ def test_get_user_by_username_returns_matching_user(
     assert user.username == "alice"
     assert user.email == "alice@example.com"
     assert user.verified is False
+
+
+@pytest.mark.parametrize(
+    ("stored_username", "lookup_username"),
+    [
+        ("Alice", "aLiCe"),
+        ("Straße", "STRASSE"),
+    ],
+)
+def test_get_user_by_username_is_case_insensitive(
+    user_store: UserStore,
+    stored_username: str,
+    lookup_username: str,
+) -> None:
+    create_user(user_store, username=stored_username)
+
+    user = user_store.get_user_by_username(lookup_username)
+
+    assert user is not None
+    assert user.username == stored_username
 
 
 def test_get_user_by_username_returns_none_for_missing_user(

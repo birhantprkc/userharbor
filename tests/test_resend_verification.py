@@ -16,7 +16,7 @@ def test_resend_verification_replaces_token_hash_and_sends_email(
 
     before_resend = utcnow()
 
-    userharbor.resend_verification(registered_user.email)
+    userharbor.resend_verification(registered_user.email.upper())
 
     after_resend = utcnow()
 

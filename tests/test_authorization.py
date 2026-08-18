@@ -11,14 +11,17 @@ from userharbor.exceptions import (
 )
 
 
-def test_grant_role_assigns_role_to_user(userharbor, register_user) -> None:
+def test_grant_role_and_get_roles_are_case_insensitive(
+    userharbor, register_user
+) -> None:
     registered_user = register_user()
     userharbor.roles.create("admin")
+    username_with_different_case = registered_user.username.upper()
 
-    userharbor.grant_role(registered_user.username, "admin")
-    userharbor.grant_role(registered_user.username, "admin")
+    userharbor.grant_role(username_with_different_case, "admin")
+    userharbor.grant_role(username_with_different_case, "admin")
 
-    assert userharbor.get_roles(registered_user.username) == {"admin"}
+    assert userharbor.get_roles(username_with_different_case) == {"admin"}
 
 
 def test_revoke_role_removes_role_from_user(userharbor, register_user) -> None:

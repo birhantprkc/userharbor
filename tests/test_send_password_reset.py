@@ -13,7 +13,7 @@ def test_send_password_reset_stores_token_hash_and_sends_email(
 
     before_send = utcnow()
 
-    userharbor.send_password_reset(registered_user.email)
+    userharbor.send_password_reset(registered_user.email.upper())
 
     after_send = utcnow()
 

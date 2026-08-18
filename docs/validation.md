@@ -13,6 +13,16 @@ replace them with application-specific functions.
 Validators receive a string and return `True` when the value is valid or
 `False` when it should be rejected.
 
+## Email normalization
+
+UserHarbor converts email addresses to lowercase before storing or looking them
+up. The normalized address is also used when sending verification and password
+reset emails. For example, `Jane@Example.COM` is stored as
+`jane@example.com`.
+
+UserHarbor does not remove dots, `+tag` suffixes, or whitespace. Those
+transformations are provider-specific or can change the address meaning.
+
 ## Default username validation
 
 The default username validator requires a username to:
@@ -35,6 +45,11 @@ jane_doe
 Characters such as hyphens and spaces are rejected by default. Username
 validation runs when a user registers. Operations involving an existing user
 check whether that user exists without validating the username again.
+
+Username casing is preserved, but username identity is compared using Unicode
+`casefold()`. A user registered as `Jane_Doe` can log in as `jane_doe` or
+`JANE_DOE`, while the stored and returned username remains `Jane_Doe`. A second
+account cannot use a username with the same case-folded value.
 
 An invalid username raises `InvalidUsernameError`.
 
@@ -91,7 +106,7 @@ def validate_username(username: str) -> bool:
     return (
         3 <= len(username) <= 32
         and username_without_underscores.isalnum()
-        and username not in RESERVED_USERNAMES
+        and username.casefold() not in RESERVED_USERNAMES
     )
 
 

@@ -11,12 +11,14 @@ from userharbor.security import verify_token
 from userharbor.utils import utcnow
 
 
-def test_login_creates_session_for_verified_user(
+def test_login_is_case_insensitive_and_creates_session_for_canonical_username(
     userharbor, store, verified_user
 ) -> None:
     before_login = utcnow()
 
-    session_token = userharbor.login(verified_user.username, verified_user.password)
+    session_token = userharbor.login(
+        verified_user.username.upper(), verified_user.password
+    )
 
     after_login = utcnow()
 
@@ -25,6 +27,7 @@ def test_login_creates_session_for_verified_user(
     assert len(session_token_hashes) == 1
     session = store.get_session(session_token_hashes[0])
     assert session is not None
+    assert session.username == verified_user.username
     assert verify_token(session_token, session.token_hash, SECRET_KEY)
     assert before_login + timedelta(days=30) <= session.expires_at
     assert session.expires_at <= after_login + timedelta(days=30)
