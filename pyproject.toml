@@ -38,7 +38,7 @@ Repository = "https://github.com/userharbor/userharbor"
 
 [project.optional-dependencies]
 all = [
-  "userharbor-sqlalchemy>=0.6.0",
+  "userharbor-sqlalchemy>=0.6.2",
   "userharbor-smtp>=0.2.0",
   "userharbor-fastapi>=0.1.0",
 ]
@@ -49,7 +49,7 @@ smtp = [
   "userharbor-smtp>=0.2.0",
 ]
 sqlalchemy = [
-  "userharbor-sqlalchemy>=0.6.0",
+  "userharbor-sqlalchemy>=0.6.2",
 ]
 
 [dependency-groups]

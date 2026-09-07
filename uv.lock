@@ -1009,8 +1009,8 @@ requires-dist = [
     { name = "userharbor-fastapi", marker = "extra == 'fastapi'", specifier = ">=0.1.0" },
     { name = "userharbor-smtp", marker = "extra == 'all'", specifier = ">=0.2.0" },
     { name = "userharbor-smtp", marker = "extra == 'smtp'", specifier = ">=0.2.0" },
-    { name = "userharbor-sqlalchemy", marker = "extra == 'all'", specifier = ">=0.6.0" },
-    { name = "userharbor-sqlalchemy", marker = "extra == 'sqlalchemy'", specifier = ">=0.6.0" },
+    { name = "userharbor-sqlalchemy", marker = "extra == 'all'", specifier = ">=0.6.2" },
+    { name = "userharbor-sqlalchemy", marker = "extra == 'sqlalchemy'", specifier = ">=0.6.2" },
 ]
 provides-extras = ["all", "fastapi", "smtp", "sqlalchemy"]
 
@@ -1049,15 +1049,15 @@ wheels = [
 
 [[package]]
 name = "userharbor-sqlalchemy"
-version = "0.6.0"
+version = "0.6.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "sqlalchemy" },
     { name = "userharbor" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/69/b5/6aa6f49f958ceea6e030067e8c45e6417fc40892ff1b2c1db4a13a795713/userharbor_sqlalchemy-0.6.0.tar.gz", hash = "sha256:621cf1a2842dae1e664096fda575e6ecbc0f0ee21797f1e1d5fa43458c4b0d85", size = 6008, upload-time = "2026-08-18T12:47:40.71Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/4a/09/ca7cb41fd33c0fe5a650dabd3ee8a8981c4899e92ba5c7a134093fa190f6/userharbor_sqlalchemy-0.6.2.tar.gz", hash = "sha256:691a918d18f5c229692efa0e27da73fd461ddeabcf501aced2de77a360c4df8b", size = 5996, upload-time = "2026-09-07T13:41:42.305Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/84/e7/ec9f339cf40dde7aa71522f323e650aead13890191fc596b873f20100a36/userharbor_sqlalchemy-0.6.0-py3-none-any.whl", hash = "sha256:ed7e018f05f2da2a90f1e95b319df2d494b6e2f7abe97965467245d7ed2b035c", size = 7508, upload-time = "2026-08-18T12:47:39.843Z" },
+    { url = "https://files.pythonhosted.org/packages/a3/e4/53fb83f2f13c051b126d33f2175c4a802b085e7cf5fe582e4d190e562eff/userharbor_sqlalchemy-0.6.2-py3-none-any.whl", hash = "sha256:14712c712f49458ad7291303c1ee8e0c9d1e0e6b28d2a27f17aabb25f9d1cf35", size = 7514, upload-time = "2026-09-07T13:41:41.408Z" },
 ]
 
 [[package]]
