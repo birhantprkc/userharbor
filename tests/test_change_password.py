@@ -3,12 +3,33 @@ from conftest import VALID_PASSWORD
 
 from userharbor.exceptions import (
     InvalidCredentialsError,
+    InvalidPasswordResetTokenError,
     InvalidSessionTokenError,
     WeakPasswordError,
 )
 from userharbor.security import verify_password
 
 NEW_PASSWORD = "NewStrongpass1!"
+
+
+def test_change_password_invalidates_existing_password_reset_token(
+    userharbor, email_sender, logged_in_user
+) -> None:
+    registered_user, session_token = logged_in_user
+    userharbor.send_password_reset(registered_user.email)
+    reset_token = email_sender.sent_password_resets[-1].reset_token
+
+    userharbor.change_password(
+        registered_user.password,
+        NEW_PASSWORD,
+        session_token,
+    )
+
+    with pytest.raises(
+        InvalidPasswordResetTokenError,
+        match="Invalid password reset token",
+    ):
+        userharbor.reset_password(NEW_PASSWORD, reset_token)
 
 
 def test_change_password_updates_password_hash_and_sends_password_changed_notification(

@@ -136,6 +136,9 @@ class MyUserStore(UserStore[MyUser]):
     def remove_password_reset(self, token_hash: str) -> None:
         ...
 
+    def remove_password_reset_for_user(self, username: str) -> None:
+        ...
+
     # RoleStore
 
     def create_role(self, role: str) -> None:
@@ -224,6 +227,7 @@ only provide methods with matching signatures. In particular:
 * setting a new email verification token removes the user's previous
   verification token
 * setting a new password reset token removes the user's previous reset token
+* changing a user's password removes their active password reset token
 * deleting a user removes their verification tokens, password reset tokens,
   sessions, and role assignments; reusing the username must not restore the
   previous account's roles or permissions

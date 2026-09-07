@@ -47,6 +47,8 @@ Each user has at most one active email verification token and one active
 password reset token. Storing a new token of either kind removes that user's
 previous token. Users can have multiple active sessions.
 
+Changing a user's password also removes their active password reset token.
+
 It also updates session expiration when UserHarbor refreshes an active session.
 
 Deleting a user through the store removes their tokens, sessions, and role

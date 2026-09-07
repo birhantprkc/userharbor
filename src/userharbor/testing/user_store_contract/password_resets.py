@@ -72,6 +72,25 @@ def test_remove_password_reset_ignores_missing_token(
 ) -> None:
     user_store.remove_password_reset("missing")
 
+
+def test_remove_password_reset_for_user_deletes_user_token(
+    user_store: UserStore,
+) -> None:
+    create_user(user_store)
+    user_store.set_password_reset(
+        UserToken("alice", "reset-token-hash", EXPIRES_AT)
+    )
+
+    user_store.remove_password_reset_for_user("alice")
+
+    assert user_store.get_password_reset("reset-token-hash") is None
+
+
+def test_remove_password_reset_for_user_ignores_missing_user(
+    user_store: UserStore,
+) -> None:
+    user_store.remove_password_reset_for_user("missing")
+
     assert user_store.get_password_reset("missing") is None
 
 

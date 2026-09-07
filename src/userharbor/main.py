@@ -221,6 +221,7 @@ class UserHarbor(Generic[UserT]):
             self._validate_password(new_password)
             user = self._store.get_user_by_username(session.username)
             self._store.set_password_hash(session.username, new_password_hash)
+            self._store.remove_password_reset_for_user(session.username)
             self._store.remove_all_sessions(session.username)
         if user:
             self._email_sender.send_password_changed(user.username, user.email)

@@ -223,6 +223,13 @@ class InMemoryUserStore(UserStore[TestUser]):
         if reset is not None:
             self.users[reset.username].password_reset_token_hash = None
 
+    def remove_password_reset_for_user(self, username: str) -> None:
+        user = self.users.get(username)
+        if user is None or user.password_reset_token_hash is None:
+            return
+        self.password_resets.pop(user.password_reset_token_hash, None)
+        user.password_reset_token_hash = None
+
     def delete_user(self, username: str) -> None:
         user = self.users.pop(username, None)
         if user is None:
