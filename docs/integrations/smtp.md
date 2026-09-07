@@ -70,6 +70,8 @@ SMTPEmailSender(
     account_deleted_subject="Account deleted",
     use_starttls=True,
     use_ssl=False,
+    ssl_context=None,
+    allow_insecure=False,
     timeout=10,
 )
 ```
@@ -77,6 +79,13 @@ SMTPEmailSender(
 Use `use_starttls=True` for the common SMTP submission flow on port 587. Use
 `use_ssl=True` for implicit TLS, commonly on port 465. When `use_ssl=True`,
 STARTTLS is not started separately.
+
+The sender uses Python's secure default SSL context, which verifies the SMTP
+server certificate and hostname. Pass `ssl_context` only when the application
+needs a custom trusted certificate authority or TLS policy. At least one of
+`use_starttls` and `use_ssl` must be enabled. Set `allow_insecure=True` only
+for a trusted local SMTP relay where plaintext transport is an explicit,
+deliberate choice.
 
 If both `username` and `password` are provided, the sender authenticates before
 sending the message.
