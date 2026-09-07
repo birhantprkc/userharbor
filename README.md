@@ -15,9 +15,6 @@
 [![Pytest](https://img.shields.io/badge/testing-Pytest-red?logo=pytest&logoColor=red)](https://docs.pytest.org/)
 [![Zensical](https://img.shields.io/badge/docs-Zensical-yellow?logo=MaterialForMkDocs&logoColor=yellow)](https://userharbor.github.io/userharbor/)
 
-> **Project status:** UserHarbor is currently in an early stage of development.
-> The API may change frequently. The library is not ready for production use yet.
-
 **UserHarbor** is a framework-agnostic Python library for user account management.
 
 Its goal is to provide a simple, stable, and framework-independent interface for common user-related operations:
