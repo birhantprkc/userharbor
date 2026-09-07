@@ -49,6 +49,11 @@ previous token. Users can have multiple active sessions.
 
 It also updates session expiration when UserHarbor refreshes an active session.
 
+Deleting a user through the store removes their tokens, sessions, and role
+assignments in the same transaction. This also works with custom user models
+and SQLite connections without foreign key enforcement. Role and permission
+definitions, and other users' assignments, are preserved.
+
 It does not send emails, expose HTTP endpoints, or implement
 application-specific authentication flows.
 

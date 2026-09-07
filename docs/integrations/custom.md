@@ -224,8 +224,9 @@ only provide methods with matching signatures. In particular:
 * setting a new email verification token removes the user's previous
   verification token
 * setting a new password reset token removes the user's previous reset token
-* deleting a user removes their verification tokens, password reset tokens, and
-  sessions
+* deleting a user removes their verification tokens, password reset tokens,
+  sessions, and role assignments; reusing the username must not restore the
+  previous account's roles or permissions
 * deleting a missing user, token, session, role, or permission is a no-op
 * refreshing a missing session and marking a missing user as verified are no-ops
 * reading a missing user or token returns `None`

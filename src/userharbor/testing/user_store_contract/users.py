@@ -91,6 +91,29 @@ def test_delete_user_ignores_missing_user(user_store: UserStore) -> None:
     assert user_store.get_user_by_username("missing") is None
 
 
+def test_recreated_user_does_not_inherit_roles_or_permissions(
+    user_store: UserStore,
+) -> None:
+    create_user(user_store)
+    create_user(user_store, username="bob", email="bob@example.com")
+    user_store.create_role("admin")
+    user_store.create_permission("users.delete")
+    user_store.grant_permission_to_role("admin", "users.delete")
+    user_store.grant_role_to_user("alice", "admin")
+    user_store.grant_role_to_user("bob", "admin")
+
+    user_store.delete_user("alice")
+    create_user(user_store, email="new-owner@example.com")
+
+    assert user_store.get_user_roles("alice") == set()
+    assert user_store.get_user_permissions("alice") == set()
+    assert user_store.get_user_roles("bob") == {"admin"}
+    assert user_store.get_user_permissions("bob") == {"users.delete"}
+    assert user_store.role_exists("admin")
+    assert user_store.permission_exists("users.delete")
+    assert user_store.get_role_permissions("admin") == {"users.delete"}
+
+
 def test_get_password_hash_returns_stored_hash(user_store: UserStore) -> None:
     create_user(user_store)
 
