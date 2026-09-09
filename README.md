@@ -402,6 +402,17 @@ and review the official adapters:
 * [`userharbor-smtp`](https://github.com/userharbor/userharbor-smtp)
 * [`userharbor-fastapi`](https://github.com/userharbor/userharbor-fastapi)
 
+### Local development
+
+We use [uv](https://docs.astral.sh/uv/getting-started/installation/) to manage the development environment. After installing uv, run these commands from the repository root:
+
+```bash
+uv sync                       # Create .venv and install development dependencies
+uv run pytest                 # Run tests
+uv run zensical build --clean # Build documentation in site/
+uv run zensical serve         # Preview documentation locally
+```
+
 <!-- --8<-- [end:contributing] -->
 
 ## License
