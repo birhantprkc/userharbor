@@ -356,8 +356,7 @@ providers should be developed as separate packages.
 
 ### 5. Stability is more important than feature count
 
-After the public API becomes stable, further core development should focus
-mainly on:
+Core development should focus mainly on:
 
 * improving security
 * improving reliability
@@ -386,11 +385,8 @@ Changes for each release are documented in the
 
 <!-- --8<-- [start:contributing] -->
 
-The project is in an early stage of development and its API is not stable yet.
-
 The most welcome areas of contribution are:
 
-* public API design
 * security improvements
 * tests
 * documentation
@@ -398,13 +394,13 @@ The most welcome areas of contribution are:
 * `EmailSender` implementations
 * framework integrations as separate packages
 
-Before starting work on a storage or email integration, review the official
-adapters:
+Before starting work on a storage, email, or framework integration, read the
+[integrations documentation](https://userharbor.github.io/userharbor/integrations/)
+and review the official adapters:
 
-```text
-https://github.com/userharbor/userharbor-sqlalchemy
-https://github.com/userharbor/userharbor-smtp
-```
+* [`userharbor-sqlalchemy`](https://github.com/userharbor/userharbor-sqlalchemy)
+* [`userharbor-smtp`](https://github.com/userharbor/userharbor-smtp)
+* [`userharbor-fastapi`](https://github.com/userharbor/userharbor-fastapi)
 
 <!-- --8<-- [end:contributing] -->
 
